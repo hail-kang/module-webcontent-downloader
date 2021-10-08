@@ -7,7 +7,7 @@ from io import BytesIO
 from mimetypes import guess_extension
 
 import requests
-from bs4 import BeautifulSoup as bs
+from bs4 import BeautifulSoup
 
 class WebContentDownloader(metaclass=abc.ABCMeta):
 
@@ -36,9 +36,10 @@ class SimpleDownloader(WebContentDownloader):
     self.base = base
     self.path = path
     self.headers = header
-    self.file_id = 1
+    self.file_id = 0
   
   def get(self, url):
+    self.file_id += 1
     url = urllib.parse.urljoin(self.base, url)
     response = requests.get(url, headers=self.headers)
     if response.ok:
@@ -61,10 +62,9 @@ class SimpleDownloader(WebContentDownloader):
     return file
 
   def download(self, url, compress=False):
-    url = urllib.parse.urljoin(self.base, url)
     if compress:
-      file = self.compress(url)
       path = os.path.join(self.path, f'{self.file_id}.zip')
+      file = self.compress(url)
       with open(path, 'wb') as f:
         f.write(file.getvalue())
     else:
@@ -76,10 +76,9 @@ class SimpleDownloader(WebContentDownloader):
 
 class SelectorCommand:
   
-  def __init__(self, element_title, element_img, attr_src):
-    self.title = element_title
-    self.img = element_img
-    self.src = attr_src
+  def __init__(self, img, src):
+    self.img = img
+    self.src = src
 
 class SelectorDownloader(WebContentDownloader):
 
@@ -91,6 +90,55 @@ class SelectorDownloader(WebContentDownloader):
     self.path = path
     self.headers = header
     self.downloader = SimpleDownloader(base, path, header)
+    self.file_id = 1
 
-  def get(self, url):
-    pass
+  def get(self, url_or_soup, selector):
+    if not isinstance(selector, SelectorCommand):
+      raise Exception("selector must be <class 'SelectroCommand'>")
+
+    if isinstance(url_or_soup, BeautifulSoup):
+      soup = url_or_soup
+    else:
+      url = urllib.parse.urljoin(self.base, url_or_soup)
+      response = requests.get(url, headers=self.headers)
+
+      if not response.ok:
+        raise Exception('html not 200 error')
+
+      html = response.text
+      soup = BeautifulSoup(html, 'html.parser')
+
+    self.file_id += 1
+    img_urls = map(lambda img : img[selector.src], soup.select(selector.img))
+
+    for img_url in img_urls:
+      yield self.downloader.get(img_url)
+
+  def compress(self, url_or_soup, selector):
+    responses = self.get(url_or_soup, selector)
+    file = BytesIO()
+    zf = ZipFile(file, 'w')
+    for i, response in enumerate(responses, start=1):
+      ext = guess_extension(response['content-type'])
+      zf.writestr(f'{i}{ext}', response['content'])
+    
+    return file
+
+  def download(self, url_or_soup, selector, compress=False):
+    if compress:
+      path = os.path.join(self.path, f'{self.file_id}.zip')
+      if os.path.exists(path):
+        pass
+      file = self.compress(url_or_soup, selector)
+      with open(path, 'wb') as f:
+        f.write(file.getvalue())
+    else:
+      path = os.path.join(self.path, str(self.file_id))
+      if not os.path.isdir(path):
+        os.mkdir(path)
+      responses = self.get(url_or_soup, selector)
+      for i, response in enumerate(responses, start=1):
+        ext = guess_extension(response['content-type'])
+        with open(os.path.join(path, f'{i}{ext}'), 'wb') as f:
+          f.write(response['content'])
+
