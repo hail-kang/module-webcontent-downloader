@@ -72,7 +72,16 @@ class SelectorCommand:
     self.img = element_img
     self.src = attr_src
 
-class SelectorDownloader:
+class SelectorDownloader(WebContentDownloader):
 
-  def __init__(self, selector_command):
+  def __init__(self, base, path, 
+    header={
+      'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1941.0 Safari/537.36'
+    }):
+    self.base = base
+    self.path = path
+    self.headers = header
+    self.downloader = SimpleDownloader(base, path, header)
+
+  def get(self, url):
     pass
