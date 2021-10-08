@@ -64,3 +64,15 @@ class SimpleDownloader(WebContentDownloader):
       path = os.path.join(self.path, name)
       with open(path, 'wb') as f:
         f.write(response['content'])
+
+class SelectorCommand:
+  
+  def __init__(self, element_title, element_img, attr_src):
+    self.title = element_title
+    self.img = element_img
+    self.src = attr_src
+
+class SelectorDownloader:
+
+  def __init__(self, selector_command):
+    pass
