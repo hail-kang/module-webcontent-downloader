@@ -3,6 +3,8 @@ import abc
 import urllib.parse
 from datetime import datetime
 from zipfile import ZipFile
+from io import BytesIO
+from mimetypes import guess_extension
 
 import requests
 from bs4 import BeautifulSoup as bs
@@ -10,20 +12,19 @@ from bs4 import BeautifulSoup as bs
 class WebContentDownloader(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
-  def __init__(self, base, path, header):
-    self.base = base
-    self.path = path
-
-  @abc.abstractmethod
-  def get(self, url):
+  def __init__(self):
     pass
 
   @abc.abstractmethod
-  def compress(self, url):
+  def get(self):
     pass
 
   @abc.abstractmethod
-  def download(self, url, name, compress=False):
+  def compress(self):
+    pass
+
+  @abc.abstractmethod
+  def download(self):
     pass
 
 class SimpleDownloader(WebContentDownloader):
@@ -35,6 +36,7 @@ class SimpleDownloader(WebContentDownloader):
     self.base = base
     self.path = path
     self.headers = header
+    self.file_id = 1
   
   def get(self, url):
     url = urllib.parse.urljoin(self.base, url)
@@ -49,19 +51,26 @@ class SimpleDownloader(WebContentDownloader):
       raise Exception('not 200 error') 
 
   def compress(self, url):
-    url = urllib.parse.urljoin(self.base, url)
-    pass
+    response = self.get(url)
+    ext = guess_extension(response['content-type'])
 
-  def download(self, url, name, compress=False):
+    file = BytesIO()
+    zf = ZipFile(file, 'w')
+    zf.writestr(f'{self.file_id}{ext}', response['content'])
+    
+    return file
+
+  def download(self, url, compress=False):
     url = urllib.parse.urljoin(self.base, url)
     if compress:
-      response = self.get(url)
-      path = os.path.join(self.path, name)
-      with ZipFile(path, 'w') as zf:
-        zf.writestr(name, response['content'])
+      file = self.compress(url)
+      path = os.path.join(self.path, f'{self.file_id}.zip')
+      with open(path, 'wb') as f:
+        f.write(file.getvalue())
     else:
       response = self.get(url)
-      path = os.path.join(self.path, name)
+      ext = guess_extension(response['content-type'])
+      path = os.path.join(self.path, f'{self.file_id}{ext}')
       with open(path, 'wb') as f:
         f.write(response['content'])
 
