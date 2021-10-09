@@ -67,18 +67,21 @@ class SimpleDownloader(WebContentDownloader):
       file = self.compress(url)
       with open(path, 'wb') as f:
         f.write(file.getvalue())
+        print(path)
     else:
       response = self.get(url)
       ext = guess_extension(response['content-type'])
       path = os.path.join(self.path, f'{self.file_id}{ext}')
       with open(path, 'wb') as f:
         f.write(response['content'])
+        print(path)
+
 
 class SelectorCommand:
   
-  def __init__(self, img, src):
-    self.img = img
-    self.src = src
+  def __init__(self, element, attribute):
+    self.element = element
+    self.attribute = attribute
 
 class SelectorDownloader(WebContentDownloader):
 
@@ -109,7 +112,7 @@ class SelectorDownloader(WebContentDownloader):
       soup = BeautifulSoup(html, 'html.parser')
 
     self.file_id += 1
-    img_urls = map(lambda img : img[selector.src], soup.select(selector.img))
+    img_urls = map(lambda img : img[selector.attribute], soup.select(selector.element))
 
     for img_url in img_urls:
       yield self.downloader.get(img_url)
@@ -121,6 +124,7 @@ class SelectorDownloader(WebContentDownloader):
     for i, response in enumerate(responses, start=1):
       ext = guess_extension(response['content-type'])
       zf.writestr(f'{i}{ext}', response['content'])
+      print(f'{i}{ext}')
     
     return file
 
@@ -132,6 +136,7 @@ class SelectorDownloader(WebContentDownloader):
       file = self.compress(url_or_soup, selector)
       with open(path, 'wb') as f:
         f.write(file.getvalue())
+        print(path)
     else:
       path = os.path.join(self.path, str(self.file_id))
       if not os.path.isdir(path):
@@ -141,4 +146,45 @@ class SelectorDownloader(WebContentDownloader):
         ext = guess_extension(response['content-type'])
         with open(os.path.join(path, f'{i}{ext}'), 'wb') as f:
           f.write(response['content'])
+          print(f'{i}{ext}')
+      print(path)
 
+
+class DownloadManager:
+
+  def __init__(self, downloader):
+    self.downloader = downloader
+    if not isinstance(downloader, WebContentDownloader):
+      raise Exception('downloader must be child of WebContentDownloader')
+    self.file_id = 1
+
+  def get_list(self, url_or_soup, selector, slice_obj=None):
+    if not isinstance(selector, SelectorCommand):
+      raise Exception("selector must be <class 'SelectroCommand'>")
+
+    if isinstance(url_or_soup, BeautifulSoup):
+      soup = url_or_soup
+    else:
+      url = urllib.parse.urljoin(self.downloader.base, url_or_soup)
+      response = requests.get(url, headers=self.downloader.headers)
+
+      if not response.ok:
+        raise Exception('html not 200 error')
+
+      html = response.text
+      soup = BeautifulSoup(html, 'html.parser')
+
+    self.file_id += 1
+    if isinstance(slice_obj, slice):
+      post_urls = map(lambda post : post[selector.attribute], soup.select(selector.element)[slice_obj])
+    else:
+      post_urls = map(lambda post : post[selector.attribute], soup.select(selector.element))
+
+    for post_url in post_urls:
+      yield post_url
+
+  def download(self, url_or_soup, list_selector, img_selector, slice_obj=None, compress=False):
+      urls = self.get_list(url_or_soup, list_selector, slice_obj)
+      for url in urls:
+        self.downloader.download(url, img_selector, compress)
+  
