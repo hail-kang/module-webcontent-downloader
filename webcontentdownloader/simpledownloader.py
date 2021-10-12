@@ -11,6 +11,9 @@ import requests
 from .interface import WebContentDownloader
 
 class SimpleDownloader(WebContentDownloader):
+  """
+  하나의 이미지를 다운로드 할 때 사용하는 클래스
+  """
 
   def __init__(self, base, path, 
     headers={

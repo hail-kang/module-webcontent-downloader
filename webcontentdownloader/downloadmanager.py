@@ -9,6 +9,9 @@ from .simpledownloader import SimpleDownloader
 from .utils import SelectorCommand
 
 class DownloadManager:
+  """
+  다운로더를 사용하여 다운로드 리스트를 각각 저장할 수 있도록 돕는 매니저 클래스
+  """
 
   def __init__(self, downloader):
     self.downloader = downloader

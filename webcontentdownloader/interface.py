@@ -23,6 +23,7 @@ class WebContentDownloader(metaclass=abc.ABCMeta):
 
 class SelectorDonwloader(WebContentDownloader, metaclass=abc.ABCMeta):
   """
-  셀렉터를 사용한 다운로더들의 인터페이스
+  선택자를 사용한 다운로더들의 인터페이스
+  한 페이지 안의 여러장의 이미지를 다운로드 함
   """
   pass
