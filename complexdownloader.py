@@ -1,5 +1,4 @@
 import os
-import abc
 import urllib.parse
 from datetime import datetime
 from zipfile import ZipFile
@@ -10,82 +9,9 @@ import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-class WebContentDownloader(metaclass=abc.ABCMeta):
-
-  @abc.abstractmethod
-  def __init__(self):
-    pass
-
-  @abc.abstractmethod
-  def get(self):
-    pass
-
-  @abc.abstractmethod
-  def compress(self):
-    pass
-
-  @abc.abstractmethod
-  def download(self):
-    pass
-
-class SelectorDonwloader(WebContentDownloader, metaclass=abc.ABCMeta):
-  pass
-
-class SimpleDownloader(WebContentDownloader):
-
-  def __init__(self, base, path, 
-    headers={
-      'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1941.0 Safari/537.36'
-    }):
-    self.base = base
-    self.path = path
-    self.headers = headers
-    self.file_id = 0
-  
-  def get(self, url):
-    self.file_id += 1
-    url = urllib.parse.urljoin(self.base, url)
-    response = requests.get(url, headers=self.headers)
-    if response.ok:
-      return {
-        'status': response.status_code,
-        'content': response.content,
-        'content-type': response.headers.get('content-type')
-      }
-    else:
-      raise Exception('not 200 error') 
-
-  def compress(self, url):
-    response = self.get(url)
-    ext = guess_extension(response['content-type'])
-
-    file = BytesIO()
-    zf = ZipFile(file, 'w')
-    zf.writestr(f'{self.file_id}{ext}', response['content'])
-    
-    return file
-
-  def download(self, url, compress=False):
-    if compress:
-      path = os.path.join(self.path, f'{self.file_id}.zip')
-      file = self.compress(url)
-      with open(path, 'wb') as f:
-        f.write(file.getvalue())
-        print(path)
-    else:
-      response = self.get(url)
-      ext = guess_extension(response['content-type'])
-      path = os.path.join(self.path, f'{self.file_id}{ext}')
-      with open(path, 'wb') as f:
-        f.write(response['content'])
-        print(path)
-
-
-class SelectorCommand:
-  
-  def __init__(self, element, attribute):
-    self.element = element
-    self.attribute = attribute
+from .interface import SelectorDonwloader
+from .simpledownloader import SimpleDownloader
+from .utils import SelectorCommand
 
 class RequestsDownloader(SelectorDonwloader):
 
@@ -225,43 +151,3 @@ class SeleniumDownloader(SelectorDonwloader):
           f.write(response['content'])
           print(f'{i}{ext}')
       print(path)
-
-
-class DownloadManager:
-
-  def __init__(self, downloader):
-    self.downloader = downloader
-    if not isinstance(downloader, SelectorDonwloader):
-      raise Exception('downloader must be child of SelectorDonwloader')
-    self.file_id = 1
-
-  def get_list(self, url_or_soup, selector, slice_obj=None):
-    if not isinstance(selector, SelectorCommand):
-      raise Exception("selector must be <class 'SelectroCommand'>")
-
-    if isinstance(url_or_soup, BeautifulSoup):
-      soup = url_or_soup
-    else:
-      url = urllib.parse.urljoin(self.downloader.base, url_or_soup)
-      response = requests.get(url, headers=self.downloader.headers)
-
-      if not response.ok:
-        raise Exception('html not 200 error')
-
-      html = response.text
-      soup = BeautifulSoup(html, 'html.parser')
-
-    self.file_id += 1
-    if isinstance(slice_obj, slice):
-      post_urls = map(lambda post : post[selector.attribute], soup.select(selector.element)[slice_obj])
-    else:
-      post_urls = map(lambda post : post[selector.attribute], soup.select(selector.element))
-
-    for post_url in post_urls:
-      yield post_url
-
-  def download(self, url_or_soup, list_selector, img_selector, slice_obj=None, compress=False):
-      urls = self.get_list(url_or_soup, list_selector, slice_obj)
-      for url in urls:
-        self.downloader.download(url, img_selector, compress)
-  
