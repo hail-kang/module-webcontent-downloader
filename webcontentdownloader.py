@@ -28,6 +28,9 @@ class WebContentDownloader(metaclass=abc.ABCMeta):
   def download(self):
     pass
 
+class SelectorDonwloader(WebContentDownloader, metaclass=abc.ABCMeta):
+  pass
+
 class SimpleDownloader(WebContentDownloader):
 
   def __init__(self, base, path, 
@@ -84,7 +87,7 @@ class SelectorCommand:
     self.element = element
     self.attribute = attribute
 
-class SelectorDownloader(WebContentDownloader):
+class RequestsDownloader(SelectorDonwloader):
 
   def __init__(self, base, path, 
     headers={
@@ -150,7 +153,7 @@ class SelectorDownloader(WebContentDownloader):
           print(f'{i}{ext}')
       print(path)
 
-class SeleniumDownloader(WebContentDownloader):
+class SeleniumDownloader(SelectorDonwloader):
 
   def __init__(self, base, path, driver,
     headers={
@@ -228,8 +231,8 @@ class DownloadManager:
 
   def __init__(self, downloader):
     self.downloader = downloader
-    if not isinstance(downloader, WebContentDownloader):
-      raise Exception('downloader must be child of WebContentDownloader')
+    if not isinstance(downloader, SelectorDonwloader):
+      raise Exception('downloader must be child of SelectorDonwloader')
     self.file_id = 1
 
   def get_list(self, url_or_soup, selector, slice_obj=None):
