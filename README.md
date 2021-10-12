@@ -6,11 +6,9 @@
 - beautifulsoup4 >= 4.10
 - selenium >= 3.141
 
-# 필요 모듈 설치
+# 모듈 설치
 ```
-$ pip install requests
-$ pip install beautifulsoup4
-$ pip install selenium
+$ pip install webcontentdownloader
 ```
 
 # 사용 방법
