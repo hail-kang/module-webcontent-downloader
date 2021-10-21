@@ -20,6 +20,7 @@ from webcontentdownloader import *
 
 downloader = RequestsDownloader(
   'https://comic.naver.com/', 
+  r'C:\Users\Kang\Downloads\호랑이형님', 
 )
 
 selector = SelectorCommand('.wt_viewer img', 'src')
