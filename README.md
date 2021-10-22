@@ -24,7 +24,7 @@ downloader = RequestsDownloader(
 )
 
 selector = SelectorCommand('.wt_viewer img', 'src')
-downloader.download('/webtoon/detail?titleId=650305&no=332&weekday=sat', selector)
+downloader.download('/webtoon/detail?titleId=650305&no=332&weekday=sat', selector, '2부249화')
 ```
 - SeleniumDownloader를 사용한다면 chromedirver를 미리 준비해야 한다.
 ```python
@@ -40,7 +40,7 @@ downloader = SeleniumDownloader(
 
 selector = SelectorCommand('.wt_viewer img', 'src')
 # compress=True를 사용하여 압축기능 사용
-downloader.download('/webtoon/detail?titleId=650305&no=332&weekday=sat', selector, True)
+downloader.download('/webtoon/detail?titleId=650305&no=332&weekday=sat', selector, '2부249화', True)
 ```
 - DownloadManager를 사용하여 여러 목록의 이미지 다운로드 가능
 ```python
