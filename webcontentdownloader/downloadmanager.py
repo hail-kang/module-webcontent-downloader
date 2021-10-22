@@ -1,5 +1,6 @@
 
 import urllib.parse
+from threading import Thread
 
 import requests
 from bs4 import BeautifulSoup
@@ -35,7 +36,6 @@ class DownloadManager:
       html = response.text
       soup = BeautifulSoup(html, 'html.parser')
 
-    self.file_id += 1
     if isinstance(slice_obj, slice):
       post_urls = map(lambda post : post[selector.attribute], soup.select(selector.element)[slice_obj])
     else:
@@ -44,7 +44,11 @@ class DownloadManager:
     for post_url in post_urls:
       yield post_url
 
-  def download(self, url_or_soup, list_selector, img_selector, slice_obj=None, compress=False):
+  def download(self, url_or_soup, list_selector, img_selector, slice_obj=None, compress=False, use_thread=False):
       urls = self.get_list(url_or_soup, list_selector, slice_obj)
       for url in urls:
-        self.downloader.download(url, img_selector, compress)
+        if use_thread:
+          Thread(target=self.downloader.download, args=(url, img_selector, self.file_id, compress)).start()
+        else:
+          self.downloader.download(url, img_selector, self.file_id, compress)
+        self.file_id += 1

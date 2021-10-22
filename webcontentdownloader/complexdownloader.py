@@ -32,7 +32,6 @@ class RequestsDownloader(SelectorDonwloader):
     self.path = path
     self.headers = headers
     self.downloader = SimpleDownloader(base, path, headers)
-    self.file_id = 1
 
   def get(self, url_or_soup, selector):
     if not isinstance(selector, SelectorCommand):
@@ -50,7 +49,6 @@ class RequestsDownloader(SelectorDonwloader):
       html = response.text
       soup = BeautifulSoup(html, 'html.parser')
 
-    self.file_id += 1
     img_urls = map(lambda img : img[selector.attribute], soup.select(selector.element))
 
     for img_url in img_urls:
@@ -67,9 +65,9 @@ class RequestsDownloader(SelectorDonwloader):
     
     return file
 
-  def download(self, url_or_soup, selector, compress=False):
+  def download(self, url_or_soup, selector, name, compress=False):
     if compress:
-      path = os.path.join(self.path, f'{self.file_id}.zip')
+      path = os.path.join(self.path, f'{name}.zip')
       if os.path.exists(path):
         pass
       file = self.compress(url_or_soup, selector)
@@ -77,7 +75,7 @@ class RequestsDownloader(SelectorDonwloader):
         f.write(file.getvalue())
         print(path)
     else:
-      path = os.path.join(self.path, str(self.file_id))
+      path = os.path.join(self.path, str(name))
       if not os.path.isdir(path):
         os.mkdir(path)
       responses = self.get(url_or_soup, selector)
@@ -119,7 +117,6 @@ class SeleniumDownloader(SelectorDonwloader):
       raise Exception('driver must be webdriver_object or driver_location')
     self.headers = headers
     self.downloader = SimpleDownloader(base, path, headers)
-    self.file_id = 1
 
   def get(self, url_or_soup, selector):
     if not isinstance(selector, SelectorCommand):
@@ -133,7 +130,6 @@ class SeleniumDownloader(SelectorDonwloader):
       html = self.driver.page_source
       soup = BeautifulSoup(html, 'html.parser')
 
-    self.file_id += 1
     img_urls = map(lambda img : img[selector.attribute], soup.select(selector.element))
 
     for img_url in img_urls:
@@ -150,9 +146,9 @@ class SeleniumDownloader(SelectorDonwloader):
     
     return file
 
-  def download(self, url_or_soup, selector, compress=False):
+  def download(self, url_or_soup, selector, name, compress=False):
     if compress:
-      path = os.path.join(self.path, f'{self.file_id}.zip')
+      path = os.path.join(self.path, f'{name}.zip')
       if os.path.exists(path):
         pass
       file = self.compress(url_or_soup, selector)
@@ -160,7 +156,7 @@ class SeleniumDownloader(SelectorDonwloader):
         f.write(file.getvalue())
         print(path)
     else:
-      path = os.path.join(self.path, str(self.file_id))
+      path = os.path.join(self.path, str(name))
       if not os.path.isdir(path):
         os.mkdir(path)
       responses = self.get(url_or_soup, selector)
